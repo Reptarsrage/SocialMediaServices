@@ -1,19 +1,20 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Library</OutputType>
     <TargetFramework>netcoreapp2.0</TargetFramework>
-    <ApplicationIcon />
-    <StartupObject />
+    <Version>1.0.0.1</Version>
   </PropertyGroup>
 
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <DocumentationFile>bin\Debug\netcoreapp2.0\YoutubeCommentsLibrary.xml</DocumentationFile>
-    <LangVersion>latest</LangVersion>
-  </PropertyGroup>
-
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <LangVersion>latest</LangVersion>
+  <PropertyGroup>
+    <PackageVersion>$(Version)</PackageVersion>
+    <PackageId>SocialMediaServices</PackageId>
+    <Title>Social Media Services</Title>
+    <Authors>Justin Robb</Authors>
+    <Description>This library contains some methods for searching and parsing comments and posts for Youtube, Google+ and Facebook using their respective API's.</Description>
+    <PackageProjectUrl>https://github.com/Reptarsrage/SocialMediaServices</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Reptarsrage/SocialMediaServices.git</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <NeutralLanguage>en</NeutralLanguage>
   </PropertyGroup>
 
   <ItemGroup>
