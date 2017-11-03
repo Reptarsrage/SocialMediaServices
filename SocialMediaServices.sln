@@ -1,0 +1,42 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.27004.2006
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SocialMediaServices", "src\SocialMediaServices\SocialMediaServices.csproj", "{E4911AF0-B7BB-4A36-A4B4-8B9801C5F572}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "SocialMediaServices.Tests.Unit", "test\SocialMediaServices.Tests.Unit\SocialMediaServices.Tests.Unit.csproj", "{C5A49CD9-476A-4E71-B2DC-F6BF75C7E5E2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SocialMediaServices.Tests.Integration", "test\SocialMediaServices.Tests.Integration\SocialMediaServices.Tests.Integration.csproj", "{32704582-2264-413D-A923-5E71651CEC5A}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{8769D075-2335-4920-91E1-EAFC717B6735}"
+	ProjectSection(SolutionItems) = preProject
+		README.md = README.md
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E4911AF0-B7BB-4A36-A4B4-8B9801C5F572}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E4911AF0-B7BB-4A36-A4B4-8B9801C5F572}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E4911AF0-B7BB-4A36-A4B4-8B9801C5F572}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E4911AF0-B7BB-4A36-A4B4-8B9801C5F572}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C5A49CD9-476A-4E71-B2DC-F6BF75C7E5E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C5A49CD9-476A-4E71-B2DC-F6BF75C7E5E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C5A49CD9-476A-4E71-B2DC-F6BF75C7E5E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C5A49CD9-476A-4E71-B2DC-F6BF75C7E5E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{32704582-2264-413D-A923-5E71651CEC5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{32704582-2264-413D-A923-5E71651CEC5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{32704582-2264-413D-A923-5E71651CEC5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{32704582-2264-413D-A923-5E71651CEC5A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {777435D7-F877-46AA-AFA9-1B4CF8AB474F}
+	EndGlobalSection
+EndGlobal
