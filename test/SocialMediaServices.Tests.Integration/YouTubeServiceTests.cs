@@ -20,7 +20,7 @@ namespace SocialMediaServices.Tests.Integration
         [OneTimeSetUp]
         public void Initialize()
         {
-            _apiKey = TestParamUtility.GetParamOrDefault("YouTube.ApiKey");
+            _apiKey = "AIzaSyAB4qUxv4HVAhcysFGMEG4NwG7s0ojf7P0";//TestParamUtility.GetParamOrDefault("YouTube.ApiKey");
 
             TestContext.WriteLine($"INFO: Using api key = '{_apiKey}'");
             Assert.False(string.IsNullOrWhiteSpace(_apiKey), "Please pass a valid api key using the cmd line arg '--params=YouTube.ApiKey=\"[API KEY]\"'");
@@ -29,7 +29,7 @@ namespace SocialMediaServices.Tests.Integration
         [SetUp]
         public void SetUp()
         {
-            videoId = "Ui8kbl270kM";
+            videoId = "pY4xtxbvkxI";
             videoUrl = $"https://www.youtube.com/watch?v={videoId}";
             channelName = "StoneMountain64";
             playlistName = "World's Best Clip of the Week";
@@ -83,6 +83,10 @@ namespace SocialMediaServices.Tests.Integration
             Assert.IsNotEmpty(playlistItems);
 
             TestContext.WriteLine($"Playlist items: {playlistItems.Count}");
+            foreach (var item in playlistItems)
+            {
+                Assert.IsNotNull(item?.Id);
+            }
         }
     }
 }

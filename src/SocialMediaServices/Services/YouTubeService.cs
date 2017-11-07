@@ -73,22 +73,22 @@ namespace SocialMediaServices.Services
             var pageToken = string.Empty;
             var list = new List<string>();
             var url = BASE_URL + "playlistItems";
-            url = QueryHelpers.AddQueryString(url, "part", "id");
+            url = QueryHelpers.AddQueryString(url, "part", "contentDetails");
             url = QueryHelpers.AddQueryString(url, "playlistId", playlistId);
             url = QueryHelpers.AddQueryString(url, "key", _apiKey);
             url = QueryHelpers.AddQueryString(url, "maxResults", "50");
-            url = QueryHelpers.AddQueryString(url, "fields", "items/id,nextPageToken");
+            url = QueryHelpers.AddQueryString(url, "fields", "items/contentDetails/videoId,nextPageToken");
 
             do
             {
                 // Get next set of items
                 var pageUrl = string.IsNullOrWhiteSpace(pageToken) ? url : QueryHelpers.AddQueryString(url, "pageToken", pageToken);
                 var parsedResp = await _client.GetAsync<YouTube.OnlyIdResponse>(pageUrl);
-                list.AddRange(parsedResp?.Items?.Select(item => item.Id) ?? new string[0]);
+                list.AddRange(parsedResp?.Items?.Select(item => item.ContentDetails.VideoId) ?? new string[0]);
 
                 pageToken = parsedResp?.NextPageToken;
             } while (!string.IsNullOrWhiteSpace(pageToken));
-            return await Task.WhenAll(list.Select(videoId => GetVideoAsync(videoId)));
+            return (await Task.WhenAll(list.Select(videoId => GetVideoAsync(videoId)))).ToList();
         }
 
         /// <inheritdoc />

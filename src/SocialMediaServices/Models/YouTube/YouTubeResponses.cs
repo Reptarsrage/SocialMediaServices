@@ -31,6 +31,12 @@ namespace SocialMediaServices.Models.YouTube
     internal sealed class Item
     {
         public string Id { get; set; }
+        public ContentDetails ContentDetails { get; set;}
+    }
+
+    internal sealed class ContentDetails
+    {
+        public string VideoId { get; set; }
     }
 
     internal sealed class VideoResponse
