@@ -1,13 +1,12 @@
 ﻿using Moq;
 using NUnit.Framework;
 using SocialMediaServices.Configuration;
+using SocialMediaServices.Services;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using SocialMediaServices;
-using SocialMediaServices.Services;
 using YouTube = SocialMediaServices.Models.YouTube;
 
 namespace SocialMediaServices.Tests.Unit
@@ -25,7 +24,7 @@ namespace SocialMediaServices.Tests.Unit
         private YouTube.VideoResponse _mockVideoResponse;
         private YouTube.VideoResponse _mockVideoResponseSecondPage;
         private YouTube.CommentResponse _mockCommentResponse;
-         
+
 
         [SetUp]
         public void SetUp()
@@ -34,13 +33,29 @@ namespace SocialMediaServices.Tests.Unit
             {
                 Items = new List<YouTube.Item> {
                     new YouTube.Item {
-                        Id = "1"
+                        Id = "1",
+                        ContentDetails = new YouTube.ContentDetails
+                        {
+                            RelatedPlaylists = new YouTube.RelatedPlaylists
+                            {
+                                Uploads = "1"
+                            },
+                            VideoId = "1"
+                        }
                     },
                     new YouTube.Item {
-                        Id = "2"
+                        Id = "2",
+                        ContentDetails = new YouTube.ContentDetails
+                        {
+                            VideoId = "2"
+                        }
                     },
                     new YouTube.Item {
-                        Id = "3"
+                        Id = "3",
+                        ContentDetails = new YouTube.ContentDetails
+                        {
+                            VideoId = "3"
+                        }
                     }
             }
             };
@@ -48,7 +63,11 @@ namespace SocialMediaServices.Tests.Unit
             {
                 Items = new List<YouTube.Item> {
                     new YouTube.Item {
-                        Id = "4"
+                        Id = "4",
+                        ContentDetails = new YouTube.ContentDetails
+                        {
+                            VideoId = "4"
+                        }
                     }
             }
             };
@@ -382,6 +401,31 @@ namespace SocialMediaServices.Tests.Unit
         }
 
         [Test]
+        public async Task GetChannelUploadsAsyncTest()
+        {
+            // Mock
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "channels", null))))
+                .ReturnsAsync(new YouTube.OnlyIdResponse { Items = new List<YouTube.Item> { _mockOnlyIdResponse.Items[0] } });
+            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "playlistItems", null))))
+                .ReturnsAsync(_mockOnlyIdResponse);
+            httpMock.SetupSequence(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[0] } })
+                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[1] } })
+                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[2] } });
+
+            // Run
+            var videos = await youTubeService.GetChannelUploadsAsync("1");
+
+            // Assert
+            Assert.AreEqual(_mockOnlyIdResponse.Items.Count, videos.Count);
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
         [TestCase("https://www.youtube.com/watch?v=s-mXHE-VTag", "s-mXHE-VTag")]
         [TestCase("http://literally.any.url.com/fake?v=s-mXHE-VTag", "s-mXHE-VTag")]
         [TestCase("http://literally.any.url.com/fake?t=test&v=s-mXHE-VTag&h=mustard", "s-mXHE-VTag")]
@@ -505,10 +549,9 @@ namespace SocialMediaServices.Tests.Unit
                 Assert.AreEqual(param.Value, queryDictionary[param.Key], $"query parameter {param.Key} are equal");
             }
 
-            Assert.AreEqual($"https://www.googleapis.com/youtube/v3/{part}", path, "Base path is correct");
             Assert.IsTrue(queryDictionary.AllKeys.Contains("key"), $"query parameter {"key"} is present");
             Assert.AreEqual(_apiKey, queryDictionary["key"], $"query parameter {"key"} are equal");
-            return true;
+            return $"https://www.googleapis.com/youtube/v3/{part}".Equals(path);
         }
     }
 }
