@@ -37,6 +37,15 @@ namespace SocialMediaServices.Models.YouTube
     internal sealed class ContentDetails
     {
         public string VideoId { get; set; }
+        public RelatedPlaylists RelatedPlaylists { get; set; }
+    }
+
+    internal sealed class RelatedPlaylists
+    {
+        public string Favorites { get; set; }
+        public string Uploads { get; set; }
+        public string WatchHistory { get; set; }
+        public string WatchLater { get; set; }
     }
 
     internal sealed class VideoResponse
@@ -99,4 +108,6 @@ namespace SocialMediaServices.Models.YouTube
     {
         public string Title { get; set; }
     }
+
+
 }

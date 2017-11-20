@@ -81,6 +81,13 @@ namespace SocialMediaServices.Services
         Task<Video> GetVideoAsync(string id);
 
         /// <summary>
+        /// Returns all video ids for a channel
+        /// </summary>
+        /// <param name="channelId">The YouTube channel Id</param>
+        /// <returns><see cref="Video"/></returns>
+        Task<IList<Video>> GetChannelUploadsAsync(string channelId);
+
+        /// <summary>
         /// Given a YouTube video URL will parse out the video Id query parameter.
         /// </summary>
         /// <param name="uri">The YouTube video Url</param>

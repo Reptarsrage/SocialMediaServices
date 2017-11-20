@@ -84,7 +84,7 @@ namespace SocialMediaServices.Services
                 // Get next set of items
                 var pageUrl = string.IsNullOrWhiteSpace(pageToken) ? url : QueryHelpers.AddQueryString(url, "pageToken", pageToken);
                 var parsedResp = await _client.GetAsync<YouTube.OnlyIdResponse>(pageUrl);
-                list.AddRange(parsedResp?.Items?.Select(item => item.ContentDetails.VideoId) ?? new string[0]);
+                list.AddRange(parsedResp?.Items?.Where(item => item?.ContentDetails?.VideoId != null).Select(item => item.ContentDetails.VideoId) ?? new string[0]);
 
                 pageToken = parsedResp?.NextPageToken;
             } while (!string.IsNullOrWhiteSpace(pageToken));
@@ -185,6 +185,24 @@ namespace SocialMediaServices.Services
         {
             var ids = await IterateOverCommentThreads(videoId, null, ct);
             return await BatchProcessComments(ids, ct);
+        }
+
+        /// <inheritdoc />
+        public async Task<IList<Video>> GetChannelUploadsAsync(string channelId)
+        {
+            var url = BASE_URL + "channels";
+            url = QueryHelpers.AddQueryString(url, "id", channelId);
+            url = QueryHelpers.AddQueryString(url, "part", "contentDetails");
+            url = QueryHelpers.AddQueryString(url, "key", _apiKey);
+
+            var channelResponse = await _client.GetAsync<YouTube.OnlyIdResponse>(url);
+            var channelItem = channelResponse?.Items?.FirstOrDefault();
+            if (channelItem == null)
+            {
+                return null;
+            }
+            var uploadId = channelItem.ContentDetails.RelatedPlaylists.Uploads;
+            return await GetPlaylistVideosAsync(uploadId);
         }
 
         private async Task<IList<string>> IterateOverCommentThreads(string id, IProgress<int> progress, CancellationToken ct)

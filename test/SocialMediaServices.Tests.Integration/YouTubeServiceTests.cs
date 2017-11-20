@@ -1,10 +1,9 @@
 using NUnit.Framework;
+using SocialMediaServices.Services;
 using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using SocialMediaServices;
-using SocialMediaServices.Services;
 
 namespace SocialMediaServices.Tests.Integration
 {
@@ -20,7 +19,7 @@ namespace SocialMediaServices.Tests.Integration
         [OneTimeSetUp]
         public void Initialize()
         {
-            _apiKey = "AIzaSyAB4qUxv4HVAhcysFGMEG4NwG7s0ojf7P0";//TestParamUtility.GetParamOrDefault("YouTube.ApiKey");
+            _apiKey = TestParamUtility.GetParamOrDefault("YouTube.ApiKey");
 
             TestContext.WriteLine($"INFO: Using api key = '{_apiKey}'");
             Assert.False(string.IsNullOrWhiteSpace(_apiKey), "Please pass a valid api key using the cmd line arg '--params=YouTube.ApiKey=\"[API KEY]\"'");
@@ -84,6 +83,26 @@ namespace SocialMediaServices.Tests.Integration
 
             TestContext.WriteLine($"Playlist items: {playlistItems.Count}");
             foreach (var item in playlistItems)
+            {
+                Assert.IsNotNull(item?.Id);
+            }
+        }
+
+        [Test]
+        public async Task TestChannelUploads()
+        {
+            var service = new YouTubeService(new SafeHttpClient(), new Configuration.YouTubeConfiguration { ApiKey = _apiKey });
+
+            var channelId = await service.GetChannelIdAsync(channelName);
+            Assert.IsNotNull(channelId);
+
+            var channelItems = await service.GetChannelUploadsAsync(channelId);
+
+            Assert.IsNotNull(channelItems);
+            Assert.IsNotEmpty(channelItems);
+
+            TestContext.WriteLine($"Channel items: {channelItems.Count}");
+            foreach (var item in channelItems)
             {
                 Assert.IsNotNull(item?.Id);
             }
