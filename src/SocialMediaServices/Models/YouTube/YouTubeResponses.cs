@@ -38,6 +38,7 @@ namespace SocialMediaServices.Models.YouTube
     {
         public string VideoId { get; set; }
         public RelatedPlaylists RelatedPlaylists { get; set; }
+        public string Duration { get; set; }
     }
 
     internal sealed class RelatedPlaylists
@@ -57,6 +58,7 @@ namespace SocialMediaServices.Models.YouTube
     {
         public VideoSnippet Snippet { get; set; }
         public Statistics Statistics { get; set; }
+        public ContentDetails ContentDetails { get; set; }
     }
 
     internal sealed class VideoSnippet
