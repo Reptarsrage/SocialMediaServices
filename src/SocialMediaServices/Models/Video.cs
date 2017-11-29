@@ -18,6 +18,11 @@ namespace SocialMediaServices.Models
         public DateTime PublishedDate { get; set; }
 
         /// <summary>
+        /// Video Duration in Seconds
+        /// </summary>
+        public double Duration { get; set; }
+
+        /// <summary>
         /// YouTube Video Channel Id
         /// </summary>
         public string ChannelId { get; set; }

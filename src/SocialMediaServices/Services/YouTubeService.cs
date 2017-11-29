@@ -7,6 +7,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using SocialMediaServices.Models;
 using YouTube = SocialMediaServices.Models.YouTube;
+using System.Xml;
 
 namespace SocialMediaServices.Services
 {
@@ -95,16 +96,17 @@ namespace SocialMediaServices.Services
         public async Task<Video> GetVideoAsync(string id)
         {
             var url = BASE_URL + "videos";
-            url = QueryHelpers.AddQueryString(url, "part", "id,statistics,snippet");
+            url = QueryHelpers.AddQueryString(url, "part", "id,statistics,snippet,contentDetails");
             url = QueryHelpers.AddQueryString(url, "id", id);
             url = QueryHelpers.AddQueryString(url, "key", _apiKey);
-            url = QueryHelpers.AddQueryString(url, "fields", "items(snippet(channelId,publishedAt,thumbnails,title),statistics)");
+            url = QueryHelpers.AddQueryString(url, "fields", "items(snippet(channelId,publishedAt,thumbnails,title),statistics,contentDetails(duration))");
 
             var parsedResp = await _client.GetAsync<YouTube.VideoResponse>(url);
             var item = parsedResp?.Items?.FirstOrDefault();
             return item == null ? null : new Video
             {
                 Id = id,
+                Duration = XmlConvert.ToTimeSpan(item.ContentDetails?.Duration ?? "PT0M0S").TotalSeconds,
                 PublishedDate = item.Snippet?.PublishedAt ?? DateTime.MinValue,
                 ChannelId = item.Snippet?.ChannelId,
                 Title = item.Snippet?.Title,
