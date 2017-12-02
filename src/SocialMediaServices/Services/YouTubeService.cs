@@ -232,11 +232,11 @@ namespace SocialMediaServices.Services
             var pageToken = string.Empty;
             var list = new List<string>();
             var url = BASE_URL + "commentThreads";
-            url = QueryHelpers.AddQueryString(url, "part", "id");
+            url = QueryHelpers.AddQueryString(url, "part", "id,replies");
             url = QueryHelpers.AddQueryString(url, "videoId", videoId);
             url = QueryHelpers.AddQueryString(url, "key", _apiKey);
             url = QueryHelpers.AddQueryString(url, "maxResults", "100");
-            url = QueryHelpers.AddQueryString(url, "fields", "items/id,nextPageToken");
+            url = QueryHelpers.AddQueryString(url, "fields", "items(id,replies(comments(id,snippet(publishedAt,textDisplay,authorDisplayName)))),nextPageToken");
 
             do
             {
@@ -244,17 +244,26 @@ namespace SocialMediaServices.Services
 
                 // Get next set of threads
                 var pageUrl = string.IsNullOrWhiteSpace(pageToken) ? url : QueryHelpers.AddQueryString(url, "pageToken", pageToken);
-                var parsedResp = await _client.GetAsync<YouTube.OnlyIdResponse>(pageUrl);
-                list.AddRange(parsedResp?.Items?.Select(item => item.Id) ?? new string[0]);
-                progress?.Report(list.Count);
+                var parsedResp = await _client.GetAsync<YouTube.CommentThreadResponse>(pageUrl);
 
-                // Get All replies
-                if (parsedResp?.Items != null && parsedResp.Items.Any())
+                // Addc comments
+                var comments = parsedResp?.Items?.Select(item => item.Id).Where(id => !string.IsNullOrWhiteSpace(id));
+                if (comments != null && comments.Any())
                 {
-                    var replies = await Task.WhenAll(parsedResp.Items.Select(item => IterateOverCommentReplies(item.Id, ct)));
-                    list.AddRange(replies?.SelectMany(r => r ?? new string[0]) ?? new string[0]);
-                    progress?.Report(list.Count);
+                    list.AddRange(comments);
+
                 }
+
+                // Add replies
+                var replies = parsedResp?.Items?.SelectMany(item => item.Replies?.Comments?.Select(c => c.Id) ?? new string[0]).Where(id => !string.IsNullOrWhiteSpace(id));
+                if (replies != null && replies.Any())
+                {
+                    list.AddRange(replies);
+
+                }
+
+                // Progress
+                progress?.Report(list.Count);
 
                 pageToken = parsedResp?.NextPageToken;
             } while (!string.IsNullOrWhiteSpace(pageToken));

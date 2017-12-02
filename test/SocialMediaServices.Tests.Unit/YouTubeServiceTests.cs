@@ -24,7 +24,7 @@ namespace SocialMediaServices.Tests.Unit
         private YouTube.VideoResponse _mockVideoResponse;
         private YouTube.VideoResponse _mockVideoResponseSecondPage;
         private YouTube.CommentResponse _mockCommentResponse;
-
+        private YouTube.CommentThreadResponse _mockCommentThreadResponse;
 
         [SetUp]
         public void SetUp()
@@ -183,6 +183,32 @@ namespace SocialMediaServices.Tests.Unit
                     }
                 }
             };
+
+            _mockCommentThreadResponse = new YouTube.CommentThreadResponse
+            {
+                Items = new List<YouTube.CommentThread>
+                {
+                    new YouTube.CommentThread
+                    {
+                        Id = "1"
+                    },
+                    new YouTube.CommentThread
+                    {
+                        Id = "2",
+                        Replies = new YouTube.Replies
+                        {
+                            Comments = new List<YouTube.Comment>
+                            {
+                                new YouTube.Comment
+                                {
+                                    Id = "3"
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
             config = new YouTubeConfiguration { ApiKey = _apiKey };
         }
 
@@ -567,10 +593,8 @@ namespace SocialMediaServices.Tests.Unit
             // Mock
             var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
             var youTubeService = new YouTubeService(httpMock.Object, config);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("comments") && checkApiCall(s, "comments", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
+            httpMock.Setup(x => x.GetAsync<YouTube.CommentThreadResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
+                .ReturnsAsync(_mockCommentThreadResponse);
             httpMock.Setup(x => x.GetAsync<YouTube.CommentResponse>(It.Is<string>(s => checkApiCall(s, "comments", null))))
                 .ReturnsAsync(_mockCommentResponse);
 
@@ -590,8 +614,8 @@ namespace SocialMediaServices.Tests.Unit
             // Mock
             var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
             var youTubeService = new YouTubeService(httpMock.Object, config);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "commentThreads", null))))
-                .ReturnsAsync(null as YouTube.OnlyIdResponse);
+            httpMock.Setup(x => x.GetAsync<YouTube.CommentThreadResponse>(It.Is<string>(s => checkApiCall(s, "commentThreads", null))))
+                .ReturnsAsync(null as YouTube.CommentThreadResponse);
 
             // Run
             var comments = await youTubeService.GetCommentsAsync("1");
@@ -610,11 +634,9 @@ namespace SocialMediaServices.Tests.Unit
             var ctSource = new CancellationTokenSource();
             var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
             var youTubeService = new YouTubeService(httpMock.Object, config);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("comments") && checkApiCall(s, "comments", null))))
+            httpMock.Setup(x => x.GetAsync<YouTube.CommentThreadResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
                 .Callback(() => ctSource.Cancel())
-                .ReturnsAsync(_mockOnlyIdResponse);
+                .ReturnsAsync(_mockCommentThreadResponse);
 
             // Assert
             Assert.ThrowsAsync<TaskCanceledException>(async () => await youTubeService.GetCommentsAsync("1", ctSource.Token));
@@ -632,15 +654,16 @@ namespace SocialMediaServices.Tests.Unit
             // Mock
             var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
             var youTubeService = new YouTubeService(httpMock.Object, config);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("comments") && checkApiCall(s, "comments", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
+            httpMock.Setup(x => x.GetAsync<YouTube.CommentThreadResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
+                .ReturnsAsync(_mockCommentThreadResponse);
             httpMock.Setup(x => x.GetAsync<YouTube.CommentResponse>(It.Is<string>(s => checkApiCall(s, "comments", null))))
                 .ReturnsAsync(_mockCommentResponse);
 
             // Run
             var comments = await youTubeService.GetCommentsAsync("1", progressIndicator);
+
+            // Wait for progress
+            Thread.Sleep(10);
 
             // Assert
             Assert.AreEqual(3, comments.Count);

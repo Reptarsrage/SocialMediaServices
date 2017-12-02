@@ -22,10 +22,27 @@ namespace SocialMediaServices.Models.YouTube
         public string TextDisplay { get; set; }
     }
 
+    internal sealed class CommentThreadResponse
+    {
+        public List<CommentThread> Items { get; set; }
+        public string NextPageToken { get; set; }
+    }
+
     internal sealed class OnlyIdResponse
     {
         public List<Item> Items { get; set; }
         public string NextPageToken { get; set; }
+    }
+
+    internal sealed class CommentThread
+    {
+        public string Id { get; set; }
+        public Replies Replies { get; set; }
+    }
+
+    internal sealed class Replies
+    {
+        public List<Comment> Comments { get; set; }
     }
 
     internal sealed class Item
