@@ -24,7 +24,7 @@ namespace SocialMediaServices.Tests.Unit
         private YouTube.VideoResponse _mockVideoResponse;
         private YouTube.VideoResponse _mockVideoResponseSecondPage;
         private YouTube.CommentResponse _mockCommentResponse;
-
+        private YouTube.CommentThreadResponse _mockCommentThreadResponse;
 
         [SetUp]
         public void SetUp()
@@ -115,6 +115,7 @@ namespace SocialMediaServices.Tests.Unit
             {
                 new YouTube.Video
                 {
+                    Id = "1",
                     Snippet = new YouTube.VideoSnippet
                     {
                         Title = "Test1"
@@ -122,6 +123,7 @@ namespace SocialMediaServices.Tests.Unit
                 },
                 new YouTube.Video
                 {
+                    Id = "2",
                     Snippet = new YouTube.VideoSnippet
                     {
                         Title = "Test2"
@@ -129,6 +131,7 @@ namespace SocialMediaServices.Tests.Unit
                 },
                 new YouTube.Video
                 {
+                    Id = "3",
                     Snippet = new YouTube.VideoSnippet
                     {
                         Title = "Test3"
@@ -142,6 +145,7 @@ namespace SocialMediaServices.Tests.Unit
             {
                 new YouTube.Video
                 {
+                    Id = "4",
                     Snippet = new YouTube.VideoSnippet
                     {
                         Title = "Test4"
@@ -179,6 +183,32 @@ namespace SocialMediaServices.Tests.Unit
                     }
                 }
             };
+
+            _mockCommentThreadResponse = new YouTube.CommentThreadResponse
+            {
+                Items = new List<YouTube.CommentThread>
+                {
+                    new YouTube.CommentThread
+                    {
+                        Id = "1"
+                    },
+                    new YouTube.CommentThread
+                    {
+                        Id = "2",
+                        Replies = new YouTube.Replies
+                        {
+                            Comments = new List<YouTube.Comment>
+                            {
+                                new YouTube.Comment
+                                {
+                                    Id = "3"
+                                }
+                            }
+                        }
+                    }
+                }
+            };
+
             config = new YouTubeConfiguration { ApiKey = _apiKey };
         }
 
@@ -289,10 +319,14 @@ namespace SocialMediaServices.Tests.Unit
             var youTubeService = new YouTubeService(httpMock.Object, config);
             httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "playlistItems", null))))
                 .ReturnsAsync(_mockOnlyIdResponse);
-            httpMock.SetupSequence(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[0] } })
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[1] } })
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[2] } });
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse
+                {
+                    Items = new List<YouTube.Video> {
+                    _mockVideoResponse.Items[0],
+                    _mockVideoResponse.Items[1],
+                    _mockVideoResponse.Items[2] }
+                });
 
             // Run
             var videos = await youTubeService.GetPlaylistVideosAsync("1");
@@ -338,11 +372,15 @@ namespace SocialMediaServices.Tests.Unit
             httpMock.SetupSequence(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "playlistItems", null))))
                 .ReturnsAsync(_mockOnlyIdResponse)
                 .ReturnsAsync(_mockOnlyIdResponseSecondPage);
-            httpMock.SetupSequence(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[0] } })
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[1] } })
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[2] } })
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponseSecondPage.Items[0] } });
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse
+                {
+                    Items = new List<YouTube.Video> {
+                    _mockVideoResponse.Items[0],
+                    _mockVideoResponse.Items[1],
+                    _mockVideoResponse.Items[2],
+                    _mockVideoResponseSecondPage.Items[0] }
+                });
 
             // Run
             var videos = await youTubeService.GetPlaylistVideosAsync("1");
@@ -354,6 +392,60 @@ namespace SocialMediaServices.Tests.Unit
             Assert.AreEqual(_mockOnlyIdResponse.Items[2].Id, videos[2].Id);
             Assert.AreEqual(_mockOnlyIdResponseSecondPage.Items[0].Id, videos[3].Id);
 
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public void GetPlaylistVideosAsyncWithCancellationTokenTest()
+        {
+            // Mock
+            var ctSource = new CancellationTokenSource();
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "playlistItems", null))))
+                .Callback(() => ctSource.Cancel())
+                .ReturnsAsync(_mockOnlyIdResponse);
+
+            // Assert
+            Assert.ThrowsAsync<TaskCanceledException>(async () => await youTubeService.GetPlaylistVideosAsync("1", ctSource.Token));
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public async Task GetPlaylistVideosAsyncWithProgressTest()
+        {
+            var progressCalled = 0;
+            var progressIndicator = new Progress<int>(i => Interlocked.Increment(ref progressCalled));
+
+            // Mock
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.SetupSequence(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "playlistItems", null))))
+                .ReturnsAsync(_mockOnlyIdResponse)
+                .ReturnsAsync(_mockOnlyIdResponseSecondPage);
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse
+                {
+                    Items = new List<YouTube.Video> {
+                    _mockVideoResponse.Items[0],
+                    _mockVideoResponse.Items[1],
+                    _mockVideoResponse.Items[2],
+                    _mockVideoResponseSecondPage.Items[0] }
+                });
+
+            // Run
+            var videos = await youTubeService.GetPlaylistVideosAsync("1", progressIndicator);
+
+            // Wait for progress
+            Thread.Sleep(10);
+
+            // Assert
+            Assert.AreEqual(4, videos.Count);
+            Assert.Greater(progressCalled, 0);
 
             // Verify
             httpMock.VerifyAll();
@@ -410,16 +502,64 @@ namespace SocialMediaServices.Tests.Unit
                 .ReturnsAsync(new YouTube.OnlyIdResponse { Items = new List<YouTube.Item> { _mockOnlyIdResponse.Items[0] } });
             httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "playlistItems", null))))
                 .ReturnsAsync(_mockOnlyIdResponse);
-            httpMock.SetupSequence(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[0] } })
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[1] } })
-                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[2] } });
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[0], _mockVideoResponse.Items[1], _mockVideoResponse.Items[2] } });
 
             // Run
             var videos = await youTubeService.GetChannelUploadsAsync("1");
 
             // Assert
             Assert.AreEqual(_mockOnlyIdResponse.Items.Count, videos.Count);
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public void GetChannelUploadsAsyncWithCancellationTokenTest()
+        {
+            // Mock
+            var ctSource = new CancellationTokenSource();
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "channels", null))))
+                .ReturnsAsync(new YouTube.OnlyIdResponse { Items = new List<YouTube.Item> { _mockOnlyIdResponse.Items[0] } });
+            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "playlistItems", null))))
+                .Callback(() => ctSource.Cancel())
+                .ReturnsAsync(_mockOnlyIdResponse);
+
+            // Assert
+            Assert.ThrowsAsync<TaskCanceledException>(async () => await youTubeService.GetChannelUploadsAsync("1", ctSource.Token));
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public async Task GetChannelUploadsAsyncWithProgressTest()
+        {
+            var progressCalled = 0;
+            var progressIndicator = new Progress<int>(i => Interlocked.Increment(ref progressCalled));
+
+            // Mock
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "channels", null))))
+                .ReturnsAsync(new YouTube.OnlyIdResponse { Items = new List<YouTube.Item> { _mockOnlyIdResponse.Items[0] } });
+            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "playlistItems", null))))
+                .ReturnsAsync(_mockOnlyIdResponse);
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse { Items = new List<YouTube.Video> { _mockVideoResponse.Items[0], _mockVideoResponse.Items[1], _mockVideoResponse.Items[2] } });
+
+            // Run
+            var videos = await youTubeService.GetChannelUploadsAsync("1", progressIndicator);
+
+            // Wait for progress
+            Thread.Sleep(10);
+
+            // Assert
+            Assert.AreEqual(3, videos.Count);
+            Assert.Greater(progressCalled, 0);
 
             // Verify
             httpMock.VerifyAll();
@@ -453,10 +593,8 @@ namespace SocialMediaServices.Tests.Unit
             // Mock
             var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
             var youTubeService = new YouTubeService(httpMock.Object, config);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("comments") && checkApiCall(s, "comments", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
+            httpMock.Setup(x => x.GetAsync<YouTube.CommentThreadResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
+                .ReturnsAsync(_mockCommentThreadResponse);
             httpMock.Setup(x => x.GetAsync<YouTube.CommentResponse>(It.Is<string>(s => checkApiCall(s, "comments", null))))
                 .ReturnsAsync(_mockCommentResponse);
 
@@ -476,8 +614,8 @@ namespace SocialMediaServices.Tests.Unit
             // Mock
             var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
             var youTubeService = new YouTubeService(httpMock.Object, config);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => checkApiCall(s, "commentThreads", null))))
-                .ReturnsAsync(null as YouTube.OnlyIdResponse);
+            httpMock.Setup(x => x.GetAsync<YouTube.CommentThreadResponse>(It.Is<string>(s => checkApiCall(s, "commentThreads", null))))
+                .ReturnsAsync(null as YouTube.CommentThreadResponse);
 
             // Run
             var comments = await youTubeService.GetCommentsAsync("1");
@@ -496,11 +634,9 @@ namespace SocialMediaServices.Tests.Unit
             var ctSource = new CancellationTokenSource();
             var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
             var youTubeService = new YouTubeService(httpMock.Object, config);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("comments") && checkApiCall(s, "comments", null))))
+            httpMock.Setup(x => x.GetAsync<YouTube.CommentThreadResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
                 .Callback(() => ctSource.Cancel())
-                .ReturnsAsync(_mockOnlyIdResponse);
+                .ReturnsAsync(_mockCommentThreadResponse);
 
             // Assert
             Assert.ThrowsAsync<TaskCanceledException>(async () => await youTubeService.GetCommentsAsync("1", ctSource.Token));
@@ -518,18 +654,148 @@ namespace SocialMediaServices.Tests.Unit
             // Mock
             var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
             var youTubeService = new YouTubeService(httpMock.Object, config);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
-            httpMock.Setup(x => x.GetAsync<YouTube.OnlyIdResponse>(It.Is<string>(s => s.Contains("comments") && checkApiCall(s, "comments", null))))
-                .ReturnsAsync(_mockOnlyIdResponse);
+            httpMock.Setup(x => x.GetAsync<YouTube.CommentThreadResponse>(It.Is<string>(s => s.Contains("commentThreads") && checkApiCall(s, "commentThreads", null))))
+                .ReturnsAsync(_mockCommentThreadResponse);
             httpMock.Setup(x => x.GetAsync<YouTube.CommentResponse>(It.Is<string>(s => checkApiCall(s, "comments", null))))
                 .ReturnsAsync(_mockCommentResponse);
 
             // Run
             var comments = await youTubeService.GetCommentsAsync("1", progressIndicator);
 
+            // Wait for progress
+            Thread.Sleep(10);
+
             // Assert
             Assert.AreEqual(3, comments.Count);
+            Assert.Greater(progressCalled, 0);
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public async Task GetVideoListAsyncAsyncTest()
+        {
+            // Mock
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse
+                {
+                    Items = new List<YouTube.Video> {
+                    _mockVideoResponse.Items[0],
+                    _mockVideoResponse.Items[1],
+                    _mockVideoResponse.Items[2] }
+                });
+
+            // Run
+            var videos = await youTubeService.GetVideoListAsync(new[] { "1", "2", "3" });
+
+            // Assert
+            Assert.AreEqual(3, videos.Count, "First page retrieved");
+            Assert.AreEqual(_mockOnlyIdResponse.Items[0].Id, videos[0].Id);
+            Assert.AreEqual(_mockOnlyIdResponse.Items[1].Id, videos[1].Id);
+            Assert.AreEqual(_mockOnlyIdResponse.Items[2].Id, videos[2].Id);
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public async Task GetVideoListAsyncNotFoundTest()
+        {
+            // Mock
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+               .ReturnsAsync(null as YouTube.VideoResponse);
+
+            // Run
+            var videos = await youTubeService.GetVideoListAsync(new[] { "1", "2", "3" });
+
+            // Assert
+            Assert.IsEmpty(videos);
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public async Task GetVideoListAsyncPagedTest()
+        {
+            // Model Set Up
+            _mockOnlyIdResponse.NextPageToken = _nextPageToken;
+
+            // Mock
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse
+                {
+                    Items = new List<YouTube.Video> {
+                    _mockVideoResponse.Items[0],
+                    _mockVideoResponse.Items[1],
+                    _mockVideoResponse.Items[2],
+                    _mockVideoResponseSecondPage.Items[0] }
+                });
+
+            // Run
+            var videos = await youTubeService.GetVideoListAsync(new[] { "1", "2", "3", "4" });
+
+            // Assert
+            Assert.AreEqual(4, videos.Count, "Second page retrieved");
+            Assert.AreEqual(_mockOnlyIdResponse.Items[0].Id, videos[0].Id);
+            Assert.AreEqual(_mockOnlyIdResponse.Items[1].Id, videos[1].Id);
+            Assert.AreEqual(_mockOnlyIdResponse.Items[2].Id, videos[2].Id);
+            Assert.AreEqual(_mockOnlyIdResponseSecondPage.Items[0].Id, videos[3].Id);
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public void GetVideoListAsyncWithCancellationTokenTest()
+        {
+            // Mock
+            var ctSource = new CancellationTokenSource();
+            ctSource.Cancel();
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+
+            // Assert
+            Assert.ThrowsAsync<TaskCanceledException>(async () => await youTubeService.GetVideoListAsync(new[] { "1", "2", "3" }, ctSource.Token));
+
+            // Verify
+            httpMock.VerifyAll();
+        }
+
+        [Test]
+        public async Task GetVideoListAsyncWithProgressTest()
+        {
+            var progressCalled = 0;
+            var progressIndicator = new Progress<int>(i => Interlocked.Increment(ref progressCalled));
+
+            // Mock
+            var httpMock = new Mock<ISafeHttpClient>(MockBehavior.Strict);
+            var youTubeService = new YouTubeService(httpMock.Object, config);
+            httpMock.Setup(x => x.GetAsync<YouTube.VideoResponse>(It.Is<string>(s => checkApiCall(s, "videos", null))))
+                .ReturnsAsync(new YouTube.VideoResponse
+                {
+                    Items = new List<YouTube.Video> {
+                    _mockVideoResponse.Items[0],
+                    _mockVideoResponse.Items[1],
+                    _mockVideoResponse.Items[2],
+                    _mockVideoResponseSecondPage.Items[0] }
+                });
+
+            // Run
+            var videos = await youTubeService.GetVideoListAsync(new[] { "1", "2", "3" }, progressIndicator);
+
+            // Wait for progress
+            Thread.Sleep(10);
+
+            // Assert
+            Assert.AreEqual(4, videos.Count);
             Assert.Greater(progressCalled, 0);
 
             // Verify
