@@ -56,6 +56,7 @@ namespace SocialMediaServices.Models.YouTube
 
     internal sealed class Video
     {
+        public string Id { get; set; }
         public VideoSnippet Snippet { get; set; }
         public Statistics Statistics { get; set; }
         public ContentDetails ContentDetails { get; set; }
